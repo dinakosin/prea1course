@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Daily Routine — Flashcards</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root{
+    --bg:#fdf6ec; --bg2:#fef9f3; --accent:#f6a623; --accent2:#e8743b;
+    --good:#7ac74f; --card:#ffffff; --txt:#3a342e;
+  }
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,var(--bg),var(--bg2));
+    color:#3a342e; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:14px; overflow-x:hidden;
+  }
+  .wrap{width:100%; max-width:460px; display:flex; flex-direction:column; gap:12px;}
+  header h1{
+    font-size:2.1rem; margin:4px 0 0; text-align:left; font-weight:700;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  header p{ margin:2px 0; text-align:left; font-size:.78rem; color:#a89b88;}
+  .progress-outer{
+    width:100%; height:12px; background:rgba(232,116,59,.15);
+    border-radius:20px; overflow:hidden; margin-bottom:10px;
+  }
+  .progress-inner{
+    height:100%; width:4%;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    border-radius:20px; transition:width .4s ease;
+  }
+  .counter{ text-align:left; font-size:.82rem; color:#b0795a; font-weight:600; margin-bottom:24px; }
+  .scene{ width:100%; height:340px; perspective:1200px; margin-top:4px; }
+  .card{
+    width:100%; height:100%; position:relative;
+    transform-style:preserve-3d; transition:transform .5s; cursor:pointer;
+  }
+  .card.flipped{ transform:rotateY(180deg); }
+  .face{
+    position:absolute; inset:0; backface-visibility:hidden;
+    border-radius:22px; padding:22px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:14px; box-shadow:0 12px 30px rgba(232,116,59,.18);
+  }
+  .front{ background:var(--card); color:var(--txt); border:2px solid #f6e3cd; }
+  .back{ background:linear-gradient(160deg,#f6a623,#e8743b); color:#fff; transform:rotateY(180deg); }
+  .emoji{ font-size:3.6rem; line-height:1; }
+  .translation{ font-size:1.5rem; font-weight:700; }
+  .example{ font-size:1rem; color:#8c8074; font-style:italic; line-height:1.4;}
+  .back .word{ font-size:2rem; font-weight:800; letter-spacing:.5px; }
+  .blank{ display:inline-block; min-width:60px; }
+  .tap-hint{ font-size:.7rem; opacity:.45; margin-top:6px; }
+  .motivation{ background:linear-gradient(160deg,#7ac74f,#4ca832)!important; color:#fff; border:none!important; }
+  .motivation .emoji{ font-size:4rem; }
+  .motivation .translation{ font-size:1.4rem; }
+  .controls{ display:flex; gap:10px; justify-content:center; margin-top:24px;}
+  button{
+    flex:1; border:none; border-radius:14px; padding:13px 8px;
+    font-size:.92rem; font-weight:700; cursor:pointer; color:#fff;
+    background:rgba(232,116,59,.35); transition:transform .1s, background .2s;
+  }
+  button:active{ transform:scale(.95); }
+  button.primary{ background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+  button.shuffle{ background:rgba(246,166,35,.4); }
+  .review{ display:none; flex-direction:column; gap:14px; }
+  .review h2{ text-align:right; font-size:1rem; margin:0; color:#3a342e;}
+  .review p{ text-align:right; font-size:.82rem; color:#a89b88; margin:0; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .mini{
+    background:var(--card); color:var(--txt); border-radius:14px;
+    text-align:center; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:6px; cursor:pointer;
+    border:3px solid #f6e3cd; transition:.15s; min-height:110px; padding:10px 6px;
+  }
+  .mini .me{ font-size:1.5rem; }
+  .mini .mw{ font-size:.78rem; font-weight:700; line-height:1.15; word-break:break-word; hyphens:auto; overflow:hidden; }
+  .mini.selected{ border-color:#e8743b; transform:scale(.97); background:#fdeede; }
+  .final{ display:none; text-align:center; padding:30px 10px; }
+  .final .big{ font-size:3.5rem; }
+  .final h2{ font-size:1.4rem; margin:14px 0 6px; color:#3a342e;}
+  .final p{ color:#a89b88; font-size:.95rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>My Daily Routine</h1>
+    <p>PreA1 · Unit 5</p>
+  </header>
+
+  <div id="study">
+    <div class="progress-outer"><div class="progress-inner" id="bar"></div></div>
+    <div class="counter">Карточка: <span id="counter">1/12</span></div>
+    <div class="scene">
+      <div class="card" id="card" onclick="flip()">
+        <div class="face front" id="front"></div>
+        <div class="face back" id="back"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="shuffle" onclick="shuffleDeck()">🔀 Перемешать</button>
+      <button onclick="prevCard()">← Назад</button>
+      <button class="primary" onclick="nextCard()">Дальше →</button>
+    </div>
+  </div>
+
+  <div class="review" id="review">
+    <h2>Отметь сложные карточки</h2>
+    <p>Нажми на те фразы, которые запомнились плохо.</p>
+    <div class="grid" id="grid"></div>
+    <div class="controls">
+      <button class="primary" onclick="iKnowAll()">✅ Помню все</button>
+      <button onclick="finishReview()">Готово →</button>
+    </div>
+  </div>
+
+  <div class="final" id="final">
+    <div class="big">🎉</div>
+    <h2>Great job! Отличная работа!</h2>
+    <p id="finalMsg"></p>
+    <div class="controls" style="margin-top:20px;">
+      <button class="primary" onclick="restart()">🔁 Начать заново</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const baseCards = [
+  {emoji:'⏰', tr:'вставать', word:'get up', ex:'I _____ at 7 o\'clock.'},
+  {emoji:'🚿', tr:'принимать душ', word:'have a shower', ex:'I _____ in the morning.'},
+  {emoji:'🥣', tr:'завтракать', word:'have breakfast', ex:'I _____ at 8 o\'clock.'},
+  {emoji:'🍽️', tr:'обедать', word:'have lunch', ex:'I _____ at school.'},
+  {emoji:'🍝', tr:'ужинать', word:'have dinner', ex:'I _____ with my family.'},
+  {emoji:'🎧', tr:'слушать музыку', word:'listen to music', ex:'I _____ every day.'},
+  {emoji:'🏫', tr:'идти в школу', word:'go to school', ex:'I _____ by bus.'},
+  {emoji:'📺', tr:'смотреть телевизор', word:'watch TV', ex:'I _____ in the evening.'},
+  {emoji:'🛏️', tr:'ложиться спать', word:'go to bed', ex:'I _____ at 10 o\'clock.'},
+  {emoji:'👫', tr:'гулять с друзьями', word:'hang out with friends', ex:'I _____ at the weekend.'},
+  {emoji:'🧹', tr:'убраться в своей комнате', word:'tidy my room', ex:'I _____ on Saturday.'},
+  {emoji:'🪥', tr:'чистить зубы', word:'brush my teeth', ex:'I _____ twice a day.'},
+];
+
+let deck = [];
+let idx = 0;
+let isFlipped = false;
+let reviewSets = [];
+let curReviewSet = 0;
+
+const front = document.getElementById('front');
+const back  = document.getElementById('back');
+const cardEl= document.getElementById('card');
+const bar   = document.getElementById('bar');
+const counterEl = document.getElementById('counter');
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function buildDeck(){
+  return shuffle(baseCards.map((c,i)=>({...c, _orig:i})));
+}
+
+function init(){
+  deck = buildDeck();
+  idx = 0; isFlipped=false;
+  document.getElementById('study').style.display='block';
+  document.getElementById('review').style.display='none';
+  document.getElementById('final').style.display='none';
+  showCard();
+}
+
+function renderFace(c){
+  const ex = c.ex.replace(/_____/g, '<span class="blank">_____</span>');
+  front.innerHTML = `
+    <div class="emoji">${c.emoji}</div>
+    <div class="translation">${c.tr}</div>
+    <div class="example">${ex}</div>
+    <div class="tap-hint">нажми, чтобы увидеть фразу</div>`;
+  back.innerHTML = `
+    <div class="emoji">${c.emoji}</div>
+    <div class="word">${c.word}</div>`;
+}
+
+function showCard(){
+  isFlipped=false;
+  cardEl.classList.remove('flipped');
+  renderFace(deck[idx]);
+  updateProgress();
+}
+
+function updateProgress(){
+  const pct = Math.round(((idx+1)/deck.length)*100);
+  bar.style.width = pct + '%';
+  counterEl.textContent = (idx+1) + '/' + deck.length;
+}
+
+function flip(){
+  isFlipped = !isFlipped;
+  cardEl.classList.toggle('flipped', isFlipped);
+}
+
+function nextCard(){
+  if(idx < deck.length-1){
+    idx++;
+    showCard();
+  } else {
+    startReview();
+  }
+}
+
+function prevCard(){
+  if(idx > 0){
+    idx--;
+    showCard();
+  }
+}
+
+function shuffleDeck(){
+  deck = shuffle(deck.slice());
+  idx = 0;
+  showCard();
+}
+
+/* ============ REVIEW ============ */
+function startReview(){
+  let pool = deck.slice();
+  reviewSets = [];
+  for(let i=0;i<pool.length;i+=8){
+    reviewSets.push(pool.slice(i,i+8));
+  }
+  curReviewSet = 0;
+  window._stillHard = [];
+  document.getElementById('study').style.display='none';
+  document.getElementById('review').style.display='flex';
+  document.getElementById('final').style.display='none';
+  renderReviewSet();
+}
+
+function renderReviewSet(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML='';
+  reviewSets[curReviewSet].forEach((c)=>{
+    const div = document.createElement('div');
+    div.className='mini';
+    div.innerHTML = `<div class="me">${c.emoji}</div><div class="mw">${c.word}</div>`;
+    div.onclick = ()=> div.classList.toggle('selected');
+    grid.appendChild(div);
+  });
+}
+
+function iKnowAll(){
+  document.querySelectorAll('#grid .mini').forEach(m=>m.classList.remove('selected'));
+  advanceReview();
+}
+
+function finishReview(){
+  const minis = document.querySelectorAll('#grid .mini');
+  const stillHard = [];
+  minis.forEach((m,i)=>{
+    if(m.classList.contains('selected')){
+      stillHard.push(reviewSets[curReviewSet][i]);
+    }
+  });
+  window._stillHard = (window._stillHard||[]).concat(stillHard);
+  advanceReview();
+}
+
+function advanceReview(){
+  if(curReviewSet < reviewSets.length-1){
+    curReviewSet++;
+    renderReviewSet();
+  } else {
+    showFinal();
+  }
+}
+
+/* ============ FINAL ============ */
+function showFinal(){
+  document.getElementById('study').style.display='none';
+  document.getElementById('review').style.display='none';
+  document.getElementById('final').style.display='block';
+  bar.style.width='100%';
+
+  const hard = window._stillHard || [];
+  const finalMsg = document.getElementById('finalMsg');
+  if(hard.length===0){
+    finalMsg.innerHTML = 'Ты прошла все 12 карточек! <br>Wonderful — теперь можно рассказать про свой день! 🥳';
+  } else {
+    const list = hard.map(c=> c.word).join(', ');
+    finalMsg.innerHTML = `Ты прошла весь набор! 🌟<br><br>
+      <b>Стоит повторить ещё раз (${hard.length}):</b><br>
+      <span style="color:#e8743b;font-weight:600;">${list}</span>`;
+  }
+}
+
+function restart(){
+  window._stillHard = [];
+  init();
+}
+
+/* ============ KEYBOARD ============ */
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('study').style.display==='none') return;
+  if(e.code==='Space'){ e.preventDefault(); flip(); }
+  if(e.code==='ArrowRight'){ nextCard(); }
+  if(e.code==='ArrowLeft'){ prevCard(); }
+});
+
+/* ============ SWIPE (mobile) ============ */
+let touchX=0, touchY=0;
+cardEl.addEventListener('touchstart', e=>{
+  touchX=e.touches[0].clientX; touchY=e.touches[0].clientY;
+}, {passive:true});
+cardEl.addEventListener('touchend', e=>{
+  const dx=e.changedTouches[0].clientX-touchX;
+  const dy=e.changedTouches[0].clientY-touchY;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)){
+    if(dx<0) nextCard(); else prevCard();
+  }
+}, {passive:true});
+
+/* ============ START ============ */
+window._stillHard = [];
+init();
+</script>
+</body>
+</html>
